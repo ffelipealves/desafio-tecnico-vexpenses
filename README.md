@@ -6,6 +6,8 @@ Irei dividir a explicação em blocos de código, onde em cada bloco irei explic
 
 ## Tarefa 1
 
+Em um resumo geral esse código Terraform automatiza a criação de uma infraestrutura na AWS, provisionando uma VPC, Subnet, Grupo de Segurança, Par de Chaves SSH e uma Instância EC2. Agora irei detalhar ele passo a passo
+
 ### Configuração do provedor AWS
 ![image](https://github.com/user-attachments/assets/485f2ac1-9e21-4af9-9f3d-41cc02ec82f1)
 
@@ -112,6 +114,79 @@ A escolha da AMI (Amazon Machine Image), define qual sistema operacional será i
 ![image](https://github.com/user-attachments/assets/eba5b4a8-8e31-43bb-b721-9fbdae4da393)
 
 Este código cria uma instância EC2 usando a AMI mais recente do Debian 12. Entendo cada trecho:
+
+ami = data.aws_ami.debian12.id - Define qual sistema operacional será instalado na instância no caso Debian 12
+
+instance_type = "t2.micro" - Define o hardware da máquina (t2.micro possui 1 vCPU, 1GB RAM)
+
+subnet_id = aws_subnet.main_subnet.id - Especifica em qual sub-rede a instância será criada.
+
+key_name = aws_key_pair.ec2_key_pair.key_name - Permite acessar a instância via SSH
+
+security_groups = [...] - Define regras de firewall para a instância. Usa o grupo de segurança que já configuramos (main_sg)
+
+associate_public_ip_address = true - Garante que a instância receba um IP público, permitindo o acesso via SSH.
+
+root_block_device - Define o disco principal da máquina.
+
+### Output
+
+![image](https://github.com/user-attachments/assets/571f9ae2-3209-4314-a889-f445767ca233)
+
+Os outputs servem para exibir informações úteis no terminal após a execução do Terraform.
+
+private_key vai exibir a chave privada gerada no início do código. ec2_public_ip vai mostrar o endereço IP público da instância EC2, também permite acessar a máquina via SSH depois que ela for criada.
+
+## Tarefa 2
+
+### Melhorias de segurança que podem ser aplicadas
+Todas modificações estão contidas e comentadas no aquivo main.tf desse repositório
+
+#### Restringir Acesso SSH
+Em vez de permitir SSH de qualquer lugar (0.0.0.0/0), podemos retringir o acesso a um IP específico (exemplo: meu_ip).
+
+#### Criar um Papel IAM para a EC2
+A EC2 não tinha permissões IAM para enviar logs ao CloudWatch. Em vez de rodar comandos diretamente na EC2 com permissões irrestritas, criei um papel IAM e o associei à instância.
+
+#### Habilitar Logs e Monitoramento com CloudWatch
+Adiciei permissões para que a EC2 envie logs ao AWS CloudWatch.
+
+#### Habilitar o Encrypted EBS (Disco da EC2)
+Podemos configurar disco raiz da EC2 para usar criptografia dando uma camada extra de segurança para nossos dados.
+
+#### Melhorar as Regras de Segurança
+Criamos regras de saída mais seguras no Security Group, permitindo apenas tráfego necessário.
+
+#### Automatização Nginx
+
+Para automatizar a instalação e inicialização do Nginx na sua instância EC2, podemos usar o recurso user_data no Terraform, que permite executar comandos de inicialização no momento da criação da instância.
+
+#### Resumo do resultado esperado
+
+Estas alterações configuram a infraestrutura da AWS utilizando o Terraform para fornecer um conjunto de recursos essenciais, incluindo uma instância EC2 com um sistema Debian 12, monitoramento via CloudWatch, e a instalação do Nginx. A seguir está uma descrição dos resultados esperados:
+
+##### Infraestrutura Provisionada:
+Uma VPC com uma sub-rede configurada.
+
+Gateway de internet configurado para a VPC.
+
+Instância EC2 Debian 12 criada, com Nginx instalado e CloudWatch Agent configurado.
+
+A instância EC2 estará acessível via SSH apenas a partir do IP especificado na variável meu_ip.
+
+##### Monitoramento:
+
+O agente CloudWatch será executado na instância EC2, permitindo a coleta de métricas e logs de desempenho.
+
+##### Segurança:
+
+A instância EC2 estará protegida pelo Security Group que restringe o tráfego SSH a um IP específico e permite tráfego necessário (HTTP, HTTPS e DNS).
+
+##### Facilidade de Acesso:
+
+O Nginx será instalado e executado, e a instância EC2 poderá ser acessada por seu IP público para visualização da página padrão do Nginx.
+
+
 
 
 
